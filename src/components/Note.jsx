@@ -27,7 +27,6 @@ export default function Note(props) {
     const [currentNote, setCurrentNote] = useState(props.notes.find(note => note.noteId === props.noteId))
 
     useEffect(() => {
-        console.log(currentNote.title)
         const updatedNotes = props.notes.map(prevNote => {
             return prevNote.noteId === currentNote.noteId ? currentNote : prevNote;
         })

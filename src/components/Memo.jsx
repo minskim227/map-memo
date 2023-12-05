@@ -1,52 +1,77 @@
-import { useEffect, useState } from "react"
+import { useEffect, useReducer } from "react"
 import Note from "./Note.jsx"
 import provData from "../provData.js"
 
 export default function Memo(props) {
 
-    const [count, setCount] = useState(() => JSON.parse(localStorage.getItem('id')) || 0)
-    const [notes, setNotes] = useState(() => JSON.parse(localStorage.getItem('notes')) || [])
-    const [selectedNoteId, setSelectedNoteId] = useState(-1)
-    const [currentProv, setCurrentProv] = useState(props.provId)
-    const [opened, setOpened] = useState(false)
+    const reducer = (state, action) => {
+        switch(action.type) {
+            case "incrementCount":
+                return {...state, count: state.count + 1}
+            case "newNote":
+                return {...state, notes: action.payload}
+            case "deleteNote":
+                return {...state, notes: action.payload}
+            case "setNotes":
+                return {...state, notes: action.payload}
+            case "setSelectedNoteId":
+                return {...state, selectedNoteId: action.payload}
+            default:
+                throw new Error()
+        }
+    }
+
+    const [state, dispatch] = useReducer(reducer, {
+        count: JSON.parse(localStorage.getItem('id')) || 0,
+        notes: JSON.parse(localStorage.getItem('notes')) || [],
+        selectedNoteId: -1,
+        currentProv: props.provId,
+        opened: false
+    })
+
+    const ACTION = {
+        INCREMENT_COUNT: "incrementCount",
+        NEW_NOTE: "newNote",
+        DELETE_NOTE: "deleteNote",
+        SET_NOTES: "setNotes",
+        SET_SELECTED_NOTE_ID: "setSelectedNoteId"
+    }
 
     useEffect(() => {
-        localStorage.setItem('notes', JSON.stringify(notes))
-    },[notes])
+        localStorage.setItem('notes', JSON.stringify(state.notes))
+    },[state.notes])
 
     useEffect(() => {
-        localStorage.setItem('id', JSON.stringify(count))
-    },[count])
+        localStorage.setItem('id', JSON.stringify(state.count))
+    },[state.count])
 
-    const maxNotes = notes.filter(note => note.provId === currentProv)
+    const maxNotes = state.notes.filter(note => note.provId === state.currentProv)
 
     function CreateNote() {
         if (maxNotes.length < 20) {
             const newNote = {
-                noteId: count,
+                noteId: state.count,
                 provId: props.provId,
                 title: 'New Note',
                 content: ''
             }
-            setCount(prev => prev + 1)
-            setNotes(prev => [...prev, newNote])
+            dispatch({type: ACTION.INCREMENT_COUNT})
+            dispatch({type: ACTION.NEW_NOTE, payload: [...state.notes, newNote]})
         }
     }
 
     function DeleteNote(id) {
-        setNotes(prev => {
-            return prev.filter((prev) => prev.noteId !== id)
-        })
+        dispatch({type: ACTION.DELETE_NOTE, payload: state.notes.filter((prev) => prev.noteId !== id)})
     }
 
     function HandleSelected(id) {
-        setSelectedNoteId(prevId => (prevId === id ? -1 : id))
+        dispatch({type: ACTION.SET_SELECTED_NOTE_ID, payload: state.selectedNoteId === id ? -1 : id})
     }
 
-    const notesArray = notes.map(note => {
+    const notesArray = state.notes.map(note => {
         return <Note key={note.noteId} noteId={note.noteId} provId={note.provId} title={note.title} content={note.content}
-            notes={notes} setNotes={setNotes}
-            opened={note.noteId === selectedNoteId} currentProv={currentProv}
+            notes={state.notes} setNotes={(updatedNotes) => {dispatch({type: ACTION.SET_NOTES, payload: updatedNotes})}}
+            opened={note.noteId === state.selectedNoteId} currentProv={state.currentProv}
             HandleSelected={() => HandleSelected(note.noteId)} DeleteNote={() => DeleteNote(note.noteId)}
             className="border border-solid rounded-md p-4 bg-teal-100 h-24"
             />
